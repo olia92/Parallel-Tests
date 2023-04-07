@@ -1,0 +1,6 @@
+ typedef class{
+        float *x, *y, *z;
+        float coefx, coefy, coefz;
+        size_t n;
+    }points1;
+
