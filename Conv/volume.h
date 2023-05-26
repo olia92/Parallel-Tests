@@ -46,4 +46,57 @@ void free_volume(volume_t *v);
 volume_t *change_volume(volume_t *new_vol, double value);
 volume_t *change_volume_acc(volume_t *new_vol, double value);
 void copy_volume_host(volume_t *dest, volume_t *src);
+
+// -------------------------------------------------------
+
+
+
+// Convolutional Layer Parameters
+typedef struct conv_layer {
+    // Required
+    int input_depth;
+    int input_width;
+    int input_height;
+    int filter_width;
+    int filter_height;
+    int stride;
+    int pad;
+    int output_depth;
+
+    // Computed
+    int output_width;
+    int output_height;
+    double bias;
+    volume_t *biases;
+    volume_t **filters;
+} conv_layer_t;
+
+// Creates a convolutional layer with the following parameters.
+conv_layer_t *make_conv_layer(int input_width, int input_height, int input_depth, int filter_width, int num_filters,
+        int stride, int pad);
+
+// Computes the forward pass for a convolutional layer on the relevant inputs
+// and stores the result into the relevant outputs.
+void conv_forward(conv_layer_t *l, volume_t **inputs, volume_t **outputs, int start, int end);
+
+// Loads the convolutional layer weights from a file.
+void conv_load(conv_layer_t *l, const char *file_name);
+
+
+typedef struct network {
+    volume_t *layers[2];
+    conv_layer_t *l0;
+    
+} network_t;
+
+// Creates a new instance of our network
+network_t* make_network();
+
+// Frees our network
+void free_network(network_t* net);
+
+typedef volume_t** batch_t;
+
+network_t *make_network();
+
 #endif
