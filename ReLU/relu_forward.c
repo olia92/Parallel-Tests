@@ -132,3 +132,29 @@ for(int i=start; i<=end;i++){
         
     return 0;
 }
+
+//---------------------------------------------
+
+//NOTES:
+// For Test
+
+// #pragma acc parallel loop present(l,inputs,outputs)//no working
+// #pragma acc parallel loop present(l) present(outputs[start:(end-start+1)],inputs[start:(end-start+1)])// no working
+                           //present(l,outputs[start:(end-start+1)],inputs[start:(end-start+1)])
+//TEST:->
+
+// fdump_volume(inputs[1],"output/inputs_1_h.txt");
+// int we =inputs[1]->width*inputs[1]->height*inputs[1]->depth;
+// for(int i=start;i<=end;i++){
+//     int we =inputs[i]->width*inputs[i]->height*inputs[i]->depth;
+// #pragma acc update device(inputs[i]->width,inputs[i]->height,inputs[i]->depth)
+// #pragma acc update device(inputs[i]->weights[0:we])
+// }
+// for(int i=start; i<=end;i++){
+//     change_volume_acc(inputs[i],3.0);
+// }
+// #pragma acc update self(inputs[1]->weights[0:we])
+// fdump_volume(inputs[1],"output/inputs_1_d.txt");
+//TEST:^
+
+//-----------------------------------------------------------------

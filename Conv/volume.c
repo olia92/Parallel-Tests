@@ -16,6 +16,7 @@
 
 #include "volume.h"
 
+int vol_count=0;
 #pragma acc routine seq
 inline double volume_get(volume_t *v, int x, int y, int d) {
     return v->weights[((v->width * y) + x) * v->depth + d];
@@ -27,11 +28,10 @@ inline void volume_set(volume_t *v, int x, int y, int d, double value) {
 }
 
 volume_t *make_volume(int width, int height, int depth, double value) {
-    volume_t *new_vol = malloc(sizeof(struct volume));
+    volume_t *new_vol = malloc(sizeof(struct volume));vol_count++;
 #pragma acc enter data create(new_vol[0:1])
     new_vol->weights = malloc(sizeof(double) * width * height * depth);
-#pragma acc enter data create(new_vol->weights[0:(width * height * depth)]) 
-
+#pragma acc enter data create(new_vol->weights[0:(width * height * depth)])
     new_vol->width = width;
     new_vol->height = height;
     new_vol->depth = depth;
@@ -52,7 +52,8 @@ void copy_volume(volume_t *dest, volume_t *src) {
     assert(dest->width == src->width);
     assert(dest->height == src->height);
     assert(dest->depth == src->depth);
-
+    
+#pragma acc parallel loop collapse(3) default(present)
     for (int x = 0; x < dest->width; x++) {
         for (int y = 0; y < dest->height; y++) {
             for (int d = 0; d < dest->depth; d++) {
@@ -61,8 +62,20 @@ void copy_volume(volume_t *dest, volume_t *src) {
         }
     }
 
-#pragma acc update device(dest->weights[0:(dest->width * dest->height * dest->depth)])
+//This When copy volume on the host ->
+// #pragma acc update device(dest->weights[0:(dest->width * dest->height * dest->depth)])
 
+//TEST: This Copy Volme to Device
+#pragma acc update host(dest->weights[0:(dest->width * dest->height * dest->depth)])
+
+// //TEST:->
+// change_volume(dest,8.00);
+
+// #pragma acc update self(dest->width,dest->height,dest->depth,dest->weights[0:(dest->width * dest->height * dest->depth)])
+// #pragma acc update self(dest->weights[0:(dest->width * dest->height * dest->depth)])
+
+// fdump_volume(dest,"output/dest.txt");
+//TEST:^
 }
 
 //TEST:Copy Volume Host
@@ -71,13 +84,12 @@ void copy_volume_host(volume_t *dest, volume_t *src) {
     assert(dest->height == src->height);
     assert(dest->depth == src->depth);
 
-    for (int x = 0; x < (dest->width*dest->height*dest->depth); x++) {
-        // for (int y = 0; y < dest->height; y++) {
-        //     for (int d = 0; d < dest->depth; d++) {
-                // volume_set(dest, x, y, d, volume_get(src, x, y, d));
-                dest->weights[x]=src->weights[x];
-        //     }
-        // }
+    for (int x = 0; x < dest->width; x++) {
+        for (int y = 0; y < dest->height; y++) {
+            for (int d = 0; d < dest->depth; d++) {
+                volume_set(dest, x, y, d, volume_get(src, x, y, d));
+            }
+        }
     }
 }
 
@@ -123,6 +135,7 @@ volume_t *change_volume(volume_t *new_vol, double value) {
     return new_vol;
 }
 //TEST: Change value in volume on GPU
+// #pragma acc routine
 volume_t *change_volume_acc(volume_t *new_vol, double value) {
     // volume_t *new_vol = malloc(sizeof(struct volume));
     // new_vol->weights = malloc(sizeof(double) * width * height * depth);
@@ -140,18 +153,4 @@ volume_t *change_volume_acc(volume_t *new_vol, double value) {
     }
 
     return new_vol;
-}
-
-relu_layer_t *make_relu_layer(int input_width, int input_height, int input_depth) {
-    relu_layer_t *l = (relu_layer_t *) malloc(sizeof(relu_layer_t));
-#pragma acc enter data create(l[0:1])
-    l->input_depth = input_depth;
-    l->input_width = input_width;
-    l->input_height = input_height;
-
-    l->output_width = l->input_width;
-    l->output_height = l->input_height;
-    l->output_depth = l->input_depth;
-#pragma acc update device(l->input_depth,l->input_width,l->input_height,l->output_depth,l->output_width,l->output_height)
-    return l;
 }
