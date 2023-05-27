@@ -1,5 +1,5 @@
 CC=nvc
-CFLAGS?=-Wall -tp=native -c17 -mp -Minfo=all -g #-acc -ta=tesla #-gpu=managed #-O3 -Mnovect
+CFLAGS?=-Wall -tp=native -c17 -mp -Minfo=all -g -acc -ta=tesla #-gpu=managed #-O3 -Mnovect
 #-Wno-unused-result  
 
 

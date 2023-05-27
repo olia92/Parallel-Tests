@@ -1,6 +1,7 @@
 #include <assert.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <openacc.h>
 
 #include "volume.h"
 
@@ -117,6 +118,7 @@ void conv_forward(conv_layer_t *l, volume_t **inputs, volume_t **outputs, int st
                 for(int out_x = 0; out_x < l->output_width; x += stride, out_x++) {
 
                     // Take sum of element-wise product
+           
                     double sum = 0.0;
                     for(int fy = 0; fy < filter->height; fy++) {
                         int in_y = y + fy;
@@ -129,11 +131,12 @@ void conv_forward(conv_layer_t *l, volume_t **inputs, volume_t **outputs, int st
                             }
                         }
                     }
-
+                
                     sum += l->biases->weights[f];
                     volume_set(out, out_x, out_y, f, sum);
+
                 }
-            }printf("Filter %d\n",f);
+            }//printf("Filter %d\n",f);
         }
     }
 }
