@@ -99,4 +99,9 @@ typedef volume_t** batch_t;
 
 network_t *make_network();
 
+void dump_volume(volume_t* v);
+
+volume_t *change_volume(volume_t *new_vol, double value);
+volume_t *change_volume_acc(volume_t *new_vol, double value);
+
 #endif
