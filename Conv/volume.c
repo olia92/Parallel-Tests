@@ -135,7 +135,9 @@ void conv_forward(conv_layer_t *l, volume_t **inputs, volume_t **outputs, int st
         // fdump_volume(in,"in.txt"); 
 
         int stride = l->stride;
-
+#pragma acc kernels
+{   
+    #pragma acc loop indepentdent
         for(int f = 0; f < l->output_depth; f++) {
             volume_t *filter = l->filters[f];
         //     int wef=filter->width*filter->height*filter->depth;
@@ -143,6 +145,7 @@ void conv_forward(conv_layer_t *l, volume_t **inputs, volume_t **outputs, int st
         // #pragma acc update device(filter->width,filter->height,filter->depth)
         // #pragma acc update device(filter->weights[0:wef])
             int y = -l->pad;
+            #pragma acc loop indepentdent
             for(int out_y = 0; out_y < l->output_height; y += stride, out_y++) {
                 int x = -l->pad;
                 for(int out_x = 0; out_x < l->output_width; x += stride, out_x++) {
@@ -150,14 +153,17 @@ void conv_forward(conv_layer_t *l, volume_t **inputs, volume_t **outputs, int st
                     // Take sum of element-wise product
            
                     double sum = 0.0;
-                // #pragma acc parallel loop present(in,out,filter) copyin(f,y,x,out_x,out_y) 
+                // #pragma acc parallel loop present(in,out,filter) copyin(f,y,x,out_x,out_y)
+                #pragma acc loop indepentdent reduction(+:sum) 
                     for(int fy = 0; fy < filter->height; fy++) {
                         int in_y = y + fy;
                         // #pragma acc loop
+                        #pragma acc loop indepentdent
                         for(int fx = 0; fx < filter->width; fx++) {
                             int in_x = x + fx;
                             if(in_y >= 0 && in_y < in->height && in_x >=0 && in_x < in->width) {
                             // #pragma acc loop reduction(+:sum)
+                                #pragma acc loop indepentdent
                                 for(int fd = 0; fd < filter->depth; fd++) {
                                     sum += filter->weights[((filter->width * fy) + fx) * filter->depth + fd]*in->weights[((in->width * in_y) + in_x) * in->depth + fd];
                                     //volume_get(filter, fx, fy, fd) * volume_get(in, in_x, in_y, fd);
@@ -177,6 +183,7 @@ void conv_forward(conv_layer_t *l, volume_t **inputs, volume_t **outputs, int st
         // change_volume_acc(out,9.0);
         // #pragma acc update self(out->weights[0:we2])
         // fdump_volume(out,"out.txt");
+        }
     }
 }
 
