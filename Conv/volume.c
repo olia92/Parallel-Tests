@@ -116,67 +116,118 @@ conv_layer_t *make_conv_layer(int input_width, int input_height, int input_depth
 }
 
 
+// void conv_forward(conv_layer_t *l, volume_t **inputs, volume_t **outputs, int start, int end) {
+//     for (int i = start; i <= end; i++) {
+//         // printf("Start Forward\n");
+//         // end=0;
+//     #pragma acc kernels
+// {  
+//         volume_t *in = inputs[i];
+//         volume_t *out = outputs[i];
+//         // // printf("    %d\n",i);
+//         // int we1= in->width* in->height* in->depth; 
+//         // int we2=out->width*out->height*out->depth;
+        
+//         // #pragma acc enter data copyin(in[0:1],out[0:1],in->weights[:we1],out->weights[:we2])
+//         // // #pragma acc update device(in->width,in->height,in->depth,out->width,out->height,out->depth)
+//         // // #pragma acc update device(in->weights[0:we1])
+//         // // change_volume_acc(out,9.0);
+//         // #pragma acc update self(in->weights[:we1],out->weights[:we2])
+
+//         // fdump_volume(in,"in.txt");
+//         // fdump_volume(out,"out.txt"); 
+ 
+
+//         int stride = l->stride;
+ 
+//     // #pragma acc loop independent
+//         for(int f = 0; f < l->output_depth; f++) {
+//             volume_t *filter = l->filters[f];
+//         //     int wef=filter->width*filter->height*filter->depth;
+//         // #pragma acc enter data create(filter[0:1],filter->weights[0:wef])
+//         // #pragma acc update device(filter->width,filter->height,filter->depth)
+//         // #pragma acc update device(filter->weights[0:wef])
+//             int y = -l->pad;
+//             // #pragma acc loop independent
+//             for(int out_y = 0; out_y < l->output_height; y += stride, out_y++) {
+//                 int x = -l->pad;
+//                 for(int out_x = 0; out_x < l->output_width; x += stride, out_x++) {
+
+//                     // Take sum of element-wise product
+           
+//                     double sum = 0.0;
+//                 // #pragma acc present(in,out,filter) copyin(f,y,x,out_x,out_y)
+//                 // #pragma acc loop independent reduction(+:sum) 
+//                     for(int fy = 0; fy < filter->height; fy++) {
+//                         int in_y = y + fy;
+//                         // #pragma acc loop
+//                         // #pragma acc loop independent
+//                         for(int fx = 0; fx < filter->width; fx++) {
+//                             int in_x = x + fx;
+//                             if(in_y >= 0 && in_y < in->height && in_x >=0 && in_x < in->width) {
+//                             // #pragma acc loop reduction(+:sum)
+//                                 // #pragma acc loop independent
+//                                 for(int fd = 0; fd < filter->depth; fd++) {
+//                                     sum += volume_get(filter, fx, fy, fd) * volume_get(in, in_x, in_y, fd);
+//                                     //filter->weights[((filter->width * fy) + fx) * filter->depth + fd]*in->weights[((in->width * in_y) + in_x) * in->depth + fd];
+//                                 }
+//                             }
+//                         }
+//                     }
+//         // #pragma acc update self(out->weights[0:we2])
+
+//                     sum += l->biases->weights[f];
+//                     // out->weights[((out->width * out_y) + out_x) * out->depth + f] = sum;
+//                     volume_set(out, out_x, out_y, f, sum);
+
+//                 }
+//             }//printf("Filter %d\n",f);
+//         }
+        
+//         }
+//                 // change_volume_acc(out,9.0);
+
+//         // #pragma acc update self(out->weights[0:we2])
+//         fdump_volume(out,"out_2.txt");
+//     }
+// }
+
 void conv_forward(conv_layer_t *l, volume_t **inputs, volume_t **outputs, int start, int end) {
+    end=1;
     for (int i = start; i <= end; i++) {
-        // printf("Start Forward\n");
-        // end=1;
         volume_t *in = inputs[i];
         volume_t *out = outputs[i];
-        // printf("    %d\n",i);
-        // int we1= in->width* in->height* in->depth; 
-        // int we2=out->width*out->height*out->depth;
-        
-        // #pragma acc enter data create(in[0:1],out[0:1],in->weights[:we1],out->weights[:we2])
-        // #pragma acc update device(in->width,in->height,in->depth,out->width,out->height,out->depth)
-        // #pragma acc update device(in->weights[0:we1])
-        // change_volume_acc(in,9.0);
-        // #pragma acc update host(in->weights[:we1])
-
-        // fdump_volume(in,"in.txt"); 
-
+// #pragma acc data create(in)
         int stride = l->stride;
-
+printf("Image: %d \n",i);
         for(int f = 0; f < l->output_depth; f++) {
-            volume_t *filter = l->filters[f];
-        //     int wef=filter->width*filter->height*filter->depth;
-        // #pragma acc enter data create(filter[0:1],filter->weights[0:wef])
-        // #pragma acc update device(filter->width,filter->height,filter->depth)
-        // #pragma acc update device(filter->weights[0:wef])
+            volume_t *filter = l->filters[f];printf(" filter: %d\n",f);
             int y = -l->pad;
             for(int out_y = 0; out_y < l->output_height; y += stride, out_y++) {
                 int x = -l->pad;
                 for(int out_x = 0; out_x < l->output_width; x += stride, out_x++) {
-
+                    printf("Calculating [%d,%d,%d] \n", out_x, out_y, f);
                     // Take sum of element-wise product
-           
-                    double sum = 0.0;
-                // #pragma acc parallel loop present(in,out,filter) copyin(f,y,x,out_x,out_y) 
+                    double sum = 0.0;           
                     for(int fy = 0; fy < filter->height; fy++) {
                         int in_y = y + fy;
-                        // #pragma acc loop
                         for(int fx = 0; fx < filter->width; fx++) {
                             int in_x = x + fx;
                             if(in_y >= 0 && in_y < in->height && in_x >=0 && in_x < in->width) {
-                            // #pragma acc loop reduction(+:sum)
                                 for(int fd = 0; fd < filter->depth; fd++) {
-                                    sum += filter->weights[((filter->width * fy) + fx) * filter->depth + fd]*in->weights[((in->width * in_y) + in_x) * in->depth + fd];
-                                    //volume_get(filter, fx, fy, fd) * volume_get(in, in_x, in_y, fd);
+                                    printf("    (%d,%d,%d)*(%d,%d,%d) sum:%lf\n",fx, fy, fd, in_x, in_y, fd,sum);
+                                    sum += volume_get(filter, fx, fy, fd) * volume_get(in, in_x, in_y, fd);
+                                    printf("    %f*%f=%f\n",volume_get(filter, fx, fy, fd),volume_get(in, in_x, in_y, fd),volume_get(filter, fx, fy, fd) * volume_get(in, in_x, in_y, fd));
                                 }
                             }
                         }
                     }
-        // #pragma acc update self(out->weights[0:we2])
 
-                    sum += l->biases->weights[f];
-                    out->weights[((out->width * out_y) + out_x) * out->depth + f] = sum;
-                    // volume_set(out, out_x, out_y, f, sum);
-
+                    sum += l->biases->weights[f];printf("   bias\n");
+                    volume_set(out, out_x, out_y, f, sum);
                 }
-            }//printf("Filter %d\n",f);
+            }
         }
-        // change_volume_acc(out,9.0);
-        // #pragma acc update self(out->weights[0:we2])
-        // fdump_volume(out,"out.txt");
     }
 }
 
@@ -215,8 +266,8 @@ void conv_load(conv_layer_t *l, const char *file_name) {
 network_t *make_network() {
     network_t *net = (network_t *) malloc(sizeof(network_t));
 
-    net->layers[0] = make_volume(5, 5, 1, 0.0);
-    net->l0 = make_conv_layer(5, 5, 1, 2, 2, 1, 1);
+    net->layers[0] = make_volume(32, 32, 3, 0.0);
+    net->l0 = make_conv_layer(32, 32, 3, 5, 16, 1, 2);
 
     net->layers[1] = make_volume(net->l0->output_width, net->l0->output_height, net->l0->output_depth, 0.0);
     return net;
