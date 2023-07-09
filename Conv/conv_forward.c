@@ -76,33 +76,18 @@ int main(){
     volume_t **input = (volume_t **) malloc(sizeof(volume_t*)*n);
     for (int i = 0; i < n; i++) {
         input[i] = batches[i / 10000][i % 10000];
-        // input[i]=make_volume(5,5,1,(i+1)*0.01);
-        // change_volume(input[i],i*0.01); 
-        // dump_volume(input[i]);
     }
 
     network_t *net = make_network();
     conv_load(net->l0, "../../cs61c/snapshot/layer1_conv.txt");
     volume_t **output = (volume_t **) malloc(sizeof(volume_t*)*n);
+
     for (int i = 0; i < n; i++) {
         output[i] = make_volume(net->l0->output_width,net->l0->output_height,net->l0->output_depth,0.0);
     }
 
-    // conv_load(net->l0, "../../cs61c/snapshot/layer1_conv.txt");
-// for(int f=0;f<net->l0->output_depth;f++){
-//     for (int x = 0; x < net->l0->filter_width; x++){
-//         for (int y = 0; y < net->l0->filter_height; y++){
-//             if(x==0 && f==0)
-//                 volume_set(net->l0->filters[f],x,y,0,1.0);
-//             if(x==1 && f==1)
-//                 volume_set(net->l0->filters[f],x,y,0,-1.0);
-//         }}}
-    
-    // dump_volume(net->l0->filters[0]);putchar('\n');
-    //     dump_volume(net->l0->filters[1]);
-
     //Copy data to GPU
-/*
+//*
 // input
     int in_w=input[0]->width*input[0]->height*input[0]->depth;
     #pragma acc enter data create(input[0:n])
@@ -142,7 +127,7 @@ int out_w=output[0]->width*output[0]->height*output[0]->depth;
  #pragma acc update device (net->layers[0]->width,net->layers[0]->height,net->layers[0]->depth,net->layers[0]->weights[0:in_w])        
     #pragma acc enter data create (net->layers[1][0:1],net->layers[1]->weights[0:out_w])
  #pragma acc update device (net->layers[1]->width,net->layers[1]->height,net->layers[1]->depth,net->layers[1]->weights[0:out_w])        
-*/
+//*/
 // for (int i=0;i<n; i++)
 //     dump_volume(output[i]);
 
