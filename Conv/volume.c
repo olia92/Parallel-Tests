@@ -120,31 +120,32 @@ void conv_forward(conv_layer_t *l, volume_t **inputs, volume_t **outputs, int st
     // end=1;
 #pragma acc kernels present(inputs[start:end-start+1],l,outputs[start:end-start+1])
 {
-    #pragma acc loop independent 
+    #pragma acc loop independent
     for (int i = start; i <= end; i++) {
-        volume_t *in = inputs[i];
-        volume_t *out = outputs[i];
+        // volume_t *in = inputs[i];
+        // volume_t *out = outputs[i];
 // #pragma acc data create(in)
         int stride = l->stride;
 // printf("Image: %d \n",i);
-#pragma acc loop seq
+#pragma acc loop seq 
         for(int f = 0; f < l->output_depth; f++) {
-            volume_t *filter = l->filters[f];//printf(" filter: %d\n",f);
+            // volume_t *filter = l->filters[f];//printf(" filter: %d\n",f);
             int y = -l->pad;
+            #pragma acc loop seq
             for(int out_y = 0; out_y < l->output_height; y += stride, out_y++) {
                 int x = -l->pad;
                 for(int out_x = 0; out_x < l->output_width; x += stride, out_x++) {
                     // printf("Calculating [%d,%d,%d] \n", out_x, out_y, f);
                     // Take sum of element-wise product
-                    double sum = 0.0;           
-                    for(int fy = 0; fy < filter->height; fy++) {
+                    double sum = 1.0;//0.0;           
+                    for(int fy = 0; fy < l->filters[f]->height; fy++) {
                         int in_y = y + fy;
-                        for(int fx = 0; fx < filter->width; fx++) {
+                        for(int fx = 0; fx < l->filters[f]->width; fx++) {
                             int in_x = x + fx;
-                            if(in_y >= 0 && in_y < in->height && in_x >=0 && in_x < in->width) {
-                                for(int fd = 0; fd < filter->depth; fd++) {
+                            if(in_y >= 0 && in_y < inputs[i]->height && in_x >=0 && in_x < inputs[i]->width) {
+                                for(int fd = 0; fd < l->filters[f]->depth; fd++) {
                                     // printf("    (%d,%d,%d)*(%d,%d,%d) sum:%lf\n",fx, fy, fd, in_x, in_y, fd,sum);
-                                    sum += volume_get(filter, fx, fy, fd) * volume_get(in, in_x, in_y, fd);
+                                    sum += volume_get(l->filters[f], fx, fy, fd) * volume_get(inputs[i], in_x, in_y, fd);
                                     // printf("    %f*%f=%f\n",volume_get(filter, fx, fy, fd),volume_get(in, in_x, in_y, fd),volume_get(filter, fx, fy, fd) * volume_get(in, in_x, in_y, fd));
                                 }
                             }
@@ -152,7 +153,7 @@ void conv_forward(conv_layer_t *l, volume_t **inputs, volume_t **outputs, int st
                     }
 
                     sum += l->biases->weights[f];//printf("   bias\n");
-                    volume_set(out, out_x, out_y, f, sum);
+                    volume_set(outputs[i], out_x, out_y, f, sum);
                 }
             }
         }
